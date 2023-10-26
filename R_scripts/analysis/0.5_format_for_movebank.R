@@ -146,29 +146,44 @@ files <- list.files(path = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/
                     full.names = TRUE)
 
 #copy files over from INGEO-DEL 
-file.copy(from = files, to = file.path("data_raw", "cormie_sensor_data"))
+file.copy(from = files, to = file.path("data_raw", "cormie_sensor_data"), overwrite = TRUE)
 
 #list cormie files in data_raw folder
 files <- list.files(path = file.path("data_raw", "cormie_sensor_data"), 
                     full.names = TRUE)
 
 #read data into r
-sdata <- lapply(files, read_csv) %>% 
+sdata <- lapply(files, read_csv) %>%
   bind_rows()
 
 #2.02 format for movebank####
-sdata <- sdata %>%
-  dplyr::filter(datatype == "SENSORS")
 
-# dive data
+# dive data (with other sensor data)
 ddata <- sdata %>%
+  dplyr::filter(!is.na(depth_m) & !is.na(light)) %>%
   dplyr::select(timestamp = UTC_datetime, 
                 tag_id = device_id,
-                depth_m) %>%
-  dplyr::filter(!is.na(depth_m))
+                depth_m,
+                light,
+                acc_x,
+                acc_y,
+                acc_z,
+                mag_x,
+                mag_y,
+                mag_z,
+                int_temperature_C) 
 
-# acceleration data
+# dive data (without other sensor data)
+ddata0 <- sdata %>%
+  dplyr::filter(!is.na(depth_m) & is.na(light)) %>%
+  dplyr::select(timestamp = UTC_datetime, 
+                tag_id = device_id,
+                depth_m) 
+
+
+# acceleration only data
 adata <- sdata %>%
+  dplyr::filter(!is.na(acc_x) & is.na(depth_m)) %>%
   dplyr::select(timestamp = UTC_datetime, 
                 tag_id = device_id,
                 acc_x,
@@ -176,38 +191,18 @@ adata <- sdata %>%
                 acc_z) %>%
   dplyr::filter(!is.na(acc_x))
 
-# mag data
-mdata <- sdata %>%
-  dplyr::select(timestamp = UTC_datetime, 
-                tag_id = device_id,
-                mag_x,
-                mag_y,
-                mag_z) %>%
-  dplyr::filter(!is.na(mag_x))
-
-# temp data
-tdata <- sdata %>%
-  dplyr::select(timestamp = UTC_datetime, 
-                tag_id = device_id,
-                temperature_C) %>%
-  dplyr::filter(!is.na(temperature_C))
-
 
 #2.03 save dive and acceleration dataframes for movebank upload####
 
 write.csv(ddata, file.path(outputbasepath,"data_processed", "movebank_upload",
-                             paste0("dive-data-BRAC-Tsawwassen.csv")),
+                             paste0("dive-and-sensor-data-BRAC-Tsawwassen.csv")),
+          row.names = FALSE)
+
+write.csv(ddata0, file.path(outputbasepath,"data_processed", "movebank_upload",
+                           paste0("dive-only-data-BRAC-Tsawwassen.csv")),
           row.names = FALSE)
 
 write.csv(adata, file.path(outputbasepath,"data_processed", "movebank_upload",
-                           paste0("acceleration-data-BRAC-Tsawwassen.csv")),
-          row.names = FALSE)
-
-write.csv(mdata, file.path(outputbasepath,"data_processed", "movebank_upload",
-                           paste0("magnetic-data-BRAC-Tsawwassen.csv")),
-          row.names = FALSE)
-
-write.csv(tdata, file.path(outputbasepath,"data_processed", "movebank_upload",
-                           paste0("temperature-data-BRAC-Tsawwassen.csv")),
+                           paste0("acceleration-only-data-BRAC-Tsawwassen.csv")),
           row.names = FALSE)
 
