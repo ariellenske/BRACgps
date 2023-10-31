@@ -38,7 +38,8 @@ captures <- read_excel("data_raw/cormorant_tracking_database_copy.xlsx", sheet =
                                      rep("guess", 3),
                                      rep("numeric", 6),
                                      rep("text", 1)),
-                       na = "-") 
+                       na = "-") %>%
+  dplyr::filter(!is.na(tagID))
 
 
 #fix dates
