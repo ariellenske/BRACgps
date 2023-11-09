@@ -78,7 +78,7 @@ cols <- c("study_site", "timestamp", "location_lat", "location_long",
 
 
                                 
-test <- db %>%
+db <- db %>%
   dplyr::select(!!!rlang::syms(cols)) %>%
   dplyr::mutate(
     timestamp = with_tz(as.POSIXct(timestamp, tz = "UTC"), tzone = "America/Vancouver"), # convert times to PDT
@@ -93,14 +93,11 @@ db <- db %>%
          metalBand = ring_id,
          speciesSciName = taxon_canonical_name,
          deployTime = deploy_on_timestamp,
-         retrievalTime = deploy_off_timestamp,
          deployMass = animal_mass,
-         nestStage = animal_reproductive_condition,
          attachmentType = attachment_type,
-         colonyLat = deploy_on_latitude,
-         colonyLon = deploy_on_longitude,
+         deployLat = deploy_on_latitude,
+         deployLon = deploy_on_longitude,
          deployComments = comments.y,
-         retrievalComments = deployment_end_comments,
          deployID = deployment_local_identifier,
          fixRate = duty_cycle,
          studySite = study_site,
@@ -108,24 +105,42 @@ db <- db %>%
          lat = location_lat,
          lon = location_long,
          tagVoltage = tag_voltage,
-         num_satellites = gps_satellite_count)
+         num_satellites = gps_satellite_count,
+         acceleration_x = acceleration_raw_x, 
+         acceleration_y = acceleration_raw_y, 
+         acceleration_z = acceleration_raw_z, 
+         magneticField_x = magnetic_field_raw_x,
+         magneticField_y = magnetic_field_raw_y,
+         magneticField_z = magnetic_field_raw_z,
+         groundSpeed = ground_speed,        
+         barometricHeight = barometric_height,
+         barometricDepth = barometric_depth,
+         temperature = external_temperature,
+         lightLevel = light_level)
 
-#split into gps data and deployment info
+#split into gps/sensor data and deployment info
 gps <- db %>% 
-  dplyr::select(studySite, species, deployID, ts, lat, lon, tatVoltage, num_satellites,
-                nestStage, year, month, fixRate) %>%
+  dplyr::select(studySite, species, deployID, ts, lat, lon, 
+                acceleration_x, acceleration_y, acceleration_z,
+                magneticField_x, magneticField_y, magneticField_z, groundSpeed, heading,                 
+                height_above_msl, barometricHeight, barometricDepth,
+                temperature, lightLevel, tagVoltage, battery_charge_percent, battery_charging_current,
+                num_satellites, gps_time_to_fix, gps_hdop,
+                year, month) %>%
   arrange(studySite, year, species, deployID, ts)
 
 deploys <- db %>% 
-  dplyr::select(studySite, colonyLat, colonyLon, year, deployID, deployTime, retrievalTime, fixRate,
-                tagID, metalBand, species, speciesSciName,
-                deployMass, nestStage,
-                attachmentType, 
-                deployComments, retrievalComments) %>%
+  dplyr::select(studySite, deployLat, deployLon, year, deployID, deployTime, 
+                tagID, metalBand, species, speciesSciName, animal_reproductive_condition,
+                deployMass, attachmentType, tag_mass_total, tag_readout_method, deploy_on_person,
+                deployComments) %>%
   distinct() %>%
+  dplyr::filter(!is.na(deployID)) %>%
   arrange(studySite, year, species, deployID)
-
-
-
+ 
+  
+#save dataframes to data_working folder on google drive
+saveRDS(gps, file.path(outputbasepath, "data_working", "brac_gps_and_sensor_data.rds"))
+saveRDS(deploys, file.path(outputbasepath, "data_working", "brac_gps_deployments.rds"))
 
 
