@@ -39,15 +39,23 @@ locs <- getMovebankData(study = 3066962629, login = login,
                         deploymentAsIndividuals = TRUE,
                         includeOutliers = FALSE)
 #convert to df
-locs.df <- as(brac, 'data.frame') 
+locs.df <- as(locs, 'data.frame') 
 
 
 #sensor data with no location
 sensors <- getMovebankNonLocationData(study = 3066962629, login = login)
 
+#add deployId to sensor records
+deployIDs <- locs.df %>% 
+  dplyr::select(study_site, deployment_local_identifier, tag_local_identifier,
+                individual_local_identifier = ring_id) %>%
+  distinct()
+
+sensors <- left_join(sensors, deployIDs)
 
 #combine gps and sensor data into one dataframe
-db <- bind_rows(locs.df, sensors)
+db <- bind_rows(locs.df %>% rename(individual_local_identifier = ring_id),
+                sensors)
 
 
 #clean up dataset
@@ -69,7 +77,7 @@ cols <- c("study_site", "timestamp", "location_lat", "location_long",
           "tag_voltage", "battery_charge_percent","battery_charging_current",
           "gps_satellite_count", "gps_time_to_fix", "gps_hdop", 
           "deployment_local_identifier",
-          "tag_local_identifier", "ring_id", "species", "taxon_canonical_name",
+          "tag_local_identifier", "individual_local_identifier", "species", "taxon_canonical_name",
           "animal_mass", "animal_reproductive_condition", "sex",
           "attachment_type", 
           "deploy_on_person", "deploy_on_timestamp", 
@@ -87,10 +95,11 @@ db <- db %>%
     month = as.numeric(strftime(timestamp, '%m')) # add numeric month field
   ) 
 
+
 #rename columns for easier coding
 db <- db %>%
   rename(tagID = tag_local_identifier,
-         metalBand = ring_id,
+         metalBand = individual_local_identifier,
          speciesSciName = taxon_canonical_name,
          deployTime = deploy_on_timestamp,
          deployMass = animal_mass,
@@ -118,9 +127,10 @@ db <- db %>%
          temperature = external_temperature,
          lightLevel = light_level)
 
+
 #split into gps/sensor data and deployment info
 gps <- db %>% 
-  dplyr::select(studySite, species, deployID, ts, lat, lon, 
+  dplyr::select(studySite, species, deployID, tagID, metalBand, ts, lat, lon, 
                 acceleration_x, acceleration_y, acceleration_z,
                 magneticField_x, magneticField_y, magneticField_z, groundSpeed, heading,                 
                 height_above_msl, barometricHeight, barometricDepth,
