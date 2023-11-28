@@ -18,7 +18,7 @@ outputbasepath <- outputs_loc("BRACgps_outputs")
 
 #1. gps tagging metadata
 
-#1.01 copy the stpe tracking database from INGEO-DEL and read the relevant sheets into R####
+#1.01 copy the brac tracking database from INGEO-DEL and read the relevant sheets into R####
 file.copy(from = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/BRAC_tracking/Data/cormorant_tracking_database.xlsx",
           to = "data_raw/cormorant_tracking_database_copy.xlsx", overwrite = TRUE)
 
