@@ -15,6 +15,7 @@ library(terra)
 library(tidyterra)
 library(marmap)
 library(patchwork)
+library(moveVis)
 
 #source functions
 source("R_scripts/functions/outputs_loc.R")
@@ -36,12 +37,16 @@ deploys <- readRDS(file.path(outputbasepath, "data_working", "brac_gps_deploymen
 names(gps)
 names(deploys)
 
-#2.0 setup basic things for maping#### 
+#2.0 setup basic things for mapping#### 
 
 #load map data
 bccoast = st_read(file.path(mapdatapath, "coastline_BC", "british_columbia_coastline.shp")) 
 eez = st_read(file.path(mapdatapath, "eez", "eez.shp"))
-bathy <- getNOAA.bathy(-124, -122, 50, 47, res = 0.2, keep = TRUE)
+bathy <- getNOAA.bathy(-124, -122, 50, 47, res = 0.1, keep = TRUE)
+plot(test)
+
+#crop bccoast
+bccoast_crop <- st_crop(bccoast, y = c(xmin = -123.9, ymin = 48.3, xmax = -122.5, ymax = 49.5))
 
 #2.0 set up stuff for plotting bathymetry layer####
 #Switch to raster
@@ -98,12 +103,20 @@ ymax <- max(max(gps$lat, na.rm = TRUE)) + 0.1
 gps.a <- gps %>% 
   dplyr::filter(!deployID %in% c("band112802265-tag210419-2023",
                                  "band112802266-tag210418-2023",
-                                 "band112802269-tag220557-2023"))
+                                 "band112802269-tag220557-2023",
+                                 "band112802277-tag220552-2023",
+                                 "band112802270-tag210421-2023",
+                                 "band112802257-tag210551-2023",
+                                 "band112802268-tag210552-2023"))
 
 gps.d <- gps %>% 
   dplyr::filter(deployID %in% c("band112802265-tag210419-2023",
                                 "band112802266-tag210418-2023",
-                                "band112802269-tag220557-2023"))
+                                "band112802269-tag220557-2023",
+                                "band112802277-tag220552-2023",
+                                "band112802270-tag210421-2023",
+                                "band112802257-tag210551-2023",
+                                "band112802268-tag210552-2023"))
 
 #plot location data
 png(filename = file.path(outputbasepath, "figs", "reports", "brac_gps_all.png"),
@@ -175,6 +188,81 @@ ggplot() +
   geom_hline(yintercept = 0, linetype = "longdash", color = "grey")
 
 dev.off()
+
+#5.0 animate GPS tracks####
+
+# convert bathyr spatraster to raster RBG for moveVis
+bathyrRGB <- RGB(raster(bathyr), col=c(ocean.col(mapbr[[1]]), land.col(mapbr[[2]])), breaks = mapbr[[3]])
+plotRGB(bathyrRGB)
+
+#set time zone to local time
+Sys.setenv(TZ = "America/Toronto")
+
+#format gps data for moveVis
+gpsa <- gps %>%
+  dplyr::select(studySite, species, tagID,
+                ts, lat, lon) %>%
+  mutate(id = tagID,
+         legend = tagID)
+
+#set track colour pallet
+idlist <- gpsa %>% dplyr::select(legend) %>% distinct() %>% pull()
+
+colpal <- data.frame(colour = viridis_pal()(length(idlist)),
+                     legend = idlist)
+
+gpsa <- left_join(gpsa, colpal)
+
+tcols <- gpsa %>% dplyr::select(id, legend) %>%
+  distinct() %>% left_join(., colpal) %>% dplyr::select(colour) %>%
+  pull()
+
+#convert to move format
+gpsamove <- df2move(gpsa,
+                    proj = crs(bathyr), 
+                    x = "lon", y = "lat", time = "ts", track_id = "id") %>%
+  align_move(res = 1, unit = "hours") 
+
+#make lists for frames_spatial function
+#time list
+timelist <- list()
+timelist[[1]] <- gpsamove@timestamps[1]
+
+#raster list
+rastlist <- list()
+rastlist[[1]] <- bathyrRGB
+
+
+# create spatial frames 
+frames <- frames_spatial(gpsamove,
+                         path_colours = tcols,
+                         r_list = rastlist[[1]],
+                         r_type = "RGB",
+                         r_times = timelist[[1]],
+                         map_res = 1,
+                         crop_raster = TRUE,
+                         path_size = 2,
+                         fade_raster = FALSE,
+                         path_legend = FALSE,
+                         tail_length = 3,
+                         tail_size = 0.8,
+                         trace_show = FALSE,
+                         trace_colour = "white",
+                         maxpixels = ncell(rastlist[[1]])/10) %>%
+  add_labels(x = "Longitude", y = "Latitude", 
+             title = "BRAC GPS tracks, Salish Sea") %>%
+  add_timestamps(type = "label", x = -123.6, y = 48.55, size = 3) 
+
+# frames1 <- add_gg(frames, gg = expr(geom_sf(data = bccoast_crop, fill = NA, color = "black", size = 0.8, alpha = 0.1)),
+#                  data = data)
+
+frames[[1000]] # preview one of the frames
+
+# animate frames
+animate_frames(frames, 
+               out_file = "animated_BRAC_Salish_Sea.gif",
+               overwrite = TRUE,
+               fps = 25)
 
 
 
