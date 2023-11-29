@@ -195,8 +195,12 @@ dev.off()
 plot(bathyr)
 
 #bathymetry layer
+
+#disaggregate bathyr
+bathyrd <- disagg(bathyr, fact = 4)
+
 # convert bathyr spatraster to raster RGB 
-bathyrRGB <- raster::RGB(raster(bathyr), col = c(ocean.col(mapbr[[1]]), land.col3(mapbr[[2]])), breaks = mapbr[[3]])
+bathyrRGB <- raster::RGB(raster::raster(bathyrd), col = c(ocean.col(mapbr[[1]]), land.col3(mapbr[[2]])), breaks = mapbr[[3]])
 plotRGB(bathyrRGB)
 
 #coastal layer
@@ -209,11 +213,11 @@ plot(coastcrop["id"])
 coastcrop <- st_transform(coastcrop, crs = crs(bathyrRGB))
 
 #rasterize the coastal polygon
-coastcrop <- rasterize(vect(coastcrop), bathyr)
+coastcrop <- rasterize(vect(coastcrop), bathyrd)
 plot(coastcrop)
 
 #convert to a RGB raster
-coastcropRGB <- RGB(raster(coastcrop), col = "black")
+coastcropRGB <- RGB(raster::raster(coastcrop), col = "black")
 plotRGB(coastcropRGB)
 
 #combine bathymetry and coastal rasters into one raster
@@ -275,13 +279,10 @@ frames <- frames_spatial(gpsamove,
              title = "BRAC GPS tracks, Salish Sea") %>%
   add_timestamps(type = "label", x = -123.6, y = 48.55, size = 3) 
 
-frames[[50]] # preview one of the frames
+frames[[40]] # preview one of the frames
 
-# animate frames
+# animate frames (slow ~20min)
 animate_frames(frames, 
                out_file = "animated_BRAC_Salish_Sea.gif",
                overwrite = TRUE,
-               fps = 10)
-
-
-
+               fps = 25)
