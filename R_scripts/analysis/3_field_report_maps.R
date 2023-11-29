@@ -192,8 +192,6 @@ dev.off()
 #5.0 animate GPS tracks####
 
 #5.1 make base map raster
-plot(bathyr)
-
 #bathymetry layer
 
 #disaggregate bathyr
@@ -284,6 +282,6 @@ frames[[40]] # preview one of the frames
 
 # animate frames (slow ~20min)
 animate_frames(frames, 
-               out_file = "animated_BRAC_Salish_Sea.mp4",
+               out_file = "animated_BRAC_Salish_Sea.gif",
                overwrite = TRUE,
                fps = 25)
