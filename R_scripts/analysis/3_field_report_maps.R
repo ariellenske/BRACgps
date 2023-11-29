@@ -197,7 +197,8 @@ plot(bathyr)
 #bathymetry layer
 
 #disaggregate bathyr
-bathyrd <- disagg(bathyr, fact = 4)
+bathyrd <- bathyr
+bathyrd <- disagg(bathyrd, fact = 2)
 
 # convert bathyr spatraster to raster RGB 
 bathyrRGB <- raster::RGB(raster::raster(bathyrd), col = c(ocean.col(mapbr[[1]]), land.col3(mapbr[[2]])), breaks = mapbr[[3]])
@@ -247,7 +248,7 @@ tcols <- gpsa %>% dplyr::select(id, legend) %>%
 
 #5.5 convert to move format
 gpsamove <- df2move(gpsa %>% dplyr::filter(!is.na(lat)),
-                    proj = crs(bathyr), 
+                    proj = crs(rbasemap), 
                     x = "lon", y = "lat", time = "ts", track_id = "id") %>%
   align_move(res = 1, unit = "hours") 
 
@@ -283,6 +284,6 @@ frames[[40]] # preview one of the frames
 
 # animate frames (slow ~20min)
 animate_frames(frames, 
-               out_file = "animated_BRAC_Salish_Sea.gif",
+               out_file = "animated_BRAC_Salish_Sea.mp4",
                overwrite = TRUE,
                fps = 25)
