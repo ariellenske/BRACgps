@@ -276,7 +276,7 @@ frames <- frames_spatial(gpsamove,
                          ) %>%
   add_labels(x = "Longitude", y = "Latitude", 
              title = "BRAC GPS tracks, Salish Sea") %>%
-  add_timestamps(type = "label", x = -123.6, y = 48.55, size = 3) 
+  add_timestamps(type = "label", x = -123.6, y = 48.6, size = 3) 
 
 frames[[40]] # preview one of the frames
 
