@@ -112,7 +112,7 @@ gpsmeta <- gpsmeta %>%
                 deploy_on_latitude = deploy_lat,
                 deploy_on_longitude = deploy_lon,
                 deploy_on_person = tagger,
-                deploy_comments = comments,
+                deploy_comments = captureComments,
                 deployment_end_type,
                 deployment_id = deployID,
                 duty_cycle,
@@ -139,11 +139,11 @@ write.csv(gpsmeta, file.path(outputbasepath,"data_processed", "movebank_upload",
 
 #2.01 download cormorant sensor and gps data from ingeodel and read into R####
 
-# #create a new folder in "data_raw" to hold all the raw gps data
-# dir.create(path = file.path("data_raw", "cormie_sensor_data"))
+#create a new folder in "data_raw" to hold all the raw gps data
+dir.create(path = file.path("data_raw", "cormie_sensor_data"))
 
 #list cormie files on INGEO-DEL
-files <- list.files(path = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/BRAC_tracking/Data/BRAC gps and sensor data/", 
+files <- list.files(path = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/BRAC_tracking/Data/BRAC sensor data/", 
                     full.names = TRUE)
 
 #copy files over from INGEO-DEL 
@@ -159,10 +159,14 @@ sdata <- lapply(files, read_csv) %>%
 
 #2.02 format for movebank####
 
+#change datetime field to text
+sdata <- sdata %>%
+  mutate(timestamp = format(UTC_datetime), formate = "%Y-%m-%d %H:%M:%S")
+
 # dive data (with other sensor data)
 ddata <- sdata %>%
   dplyr::filter(!is.na(depth_m) & !is.na(light)) %>%
-  dplyr::select(timestamp = UTC_datetime, 
+  dplyr::select(timestamp, 
                 tag_id = device_id,
                 depth_m,
                 light,
@@ -177,7 +181,7 @@ ddata <- sdata %>%
 # dive data (without other sensor data)
 ddata0 <- sdata %>%
   dplyr::filter(!is.na(depth_m) & is.na(light)) %>%
-  dplyr::select(timestamp = UTC_datetime, 
+  dplyr::select(timestamp, 
                 tag_id = device_id,
                 depth_m) 
 
@@ -185,7 +189,7 @@ ddata0 <- sdata %>%
 # acceleration only data
 adata <- sdata %>%
   dplyr::filter(!is.na(acc_x) & is.na(depth_m)) %>%
-  dplyr::select(timestamp = UTC_datetime, 
+  dplyr::select(timestamp, 
                 tag_id = device_id,
                 acc_x,
                 acc_y,
