@@ -32,18 +32,42 @@ login <- move::movebankLogin(username = mb_user, password = mb_pass)
 #load data from BRAC gps movebank project 
 #3066962629 - Brandt's Cormorant BRAC, Salish Sea BC Canada (GPS)
 
+#get the animal names of the study
+birdIDs <- as.character(unique(getMovebankAnimals(study = 3066962629, login = login)$local_identifier))
+
 #gps and associated sensor data
-locs <- getMovebankData(study = 3066962629, login = login,
-                        removeDuplicatedTimestamps = TRUE,
-                        includeExtraSensors = TRUE,
-                        deploymentAsIndividuals = TRUE,
-                        includeOutliers = FALSE)
+#download each individual's data and create a MoveStack
+locs <- lapply(birdIDs, function(x){
+  
+  print(paste0(x," (", match(x, birdIDs), " of ", length(birdIDs),")"))
+  getMovebankData(study = 3066962629,
+                  login = login, 
+                  animalName = x, 
+                  removeDuplicatedTimestamps = TRUE,
+                  includeExtraSensors = FALSE,
+                  includeOutliers = FALSE)
+
+  })
+
+locs <- moveStack(locs, forceTz = "UTC")
+
 #convert to df
 locs.df <- as(locs, 'data.frame') 
 
 
 #sensor data with no location
-sensors <- getMovebankNonLocationData(study = 3066962629, login = login)
+#download each individual's data and create a MoveStack
+sensors <- lapply(birdIDs, function(x){
+  
+  print(paste0(x," (", match(x, birdIDs), " of ", length(birdIDs),")"))
+  getMovebankNonLocationData(study = 3066962629,
+                             login = login, 
+                             animalName = x)
+  
+})
+
+
+# sensors <- getMovebankNonLocationData(study = 3066962629, login = login)
 
 #add deployId to sensor records
 deployIDs <- locs.df %>% 
