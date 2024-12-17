@@ -37,27 +37,38 @@ movebank_retrieve(entity_type = "tag_type")
 
 #gps and sensor data
 #download each individual's data and combine in one df
-locs <- lapply(birdIDs, function(x){
-  
-  print(paste0(x," (", match(x, birdIDs), " of ", length(birdIDs),")"))
-  
-  movebank_download_study(study_id = 3066962629,
-                               sensor_type_id = c("gps", "accessory-measurements"),
-                               individual_local_identifier = x, 
-                               remove_movebank_outliers = TRUE,
-                               convert_spatial_columns = FALSE,)
+locs <- list()
 
-  })
+for(i in 1:length(birdIDs)) {
+  
+  # i <- 1
+  
+  print(paste0(birdIDs[i]," (", i, " of ", length(birdIDs),")"))
+  
+  temp <- movebank_download_study(study_id = 3066962629,
+                                  sensor_type_id = c("gps", "accessory-measurements"),
+                                  individual_local_identifier = birdIDs[i], 
+                                  remove_movebank_outliers = TRUE)
+
+  
+  #convert to flat table with all fields
+  temp <- mt_as_event_attribute(temp, names(mt_track_data(temp)))
+  
+  #pull out spatial data
+  temp <- temp %>% dplyr::mutate(deploy_on_longitude = sf::st_coordinates(temp$deploy_on_location)[,1],
+                                 deploy_on_latitude = sf::st_coordinates(temp$deploy_on_location)[,2],
+                                 location_long = sf::st_coordinates(temp)[,1],
+                                 location_lat = sf::st_coordinates(temp)[,2])
+  #drop geometry
+  temp <- sf::st_drop_geometry(temp)
+  
+  locs[[i]] <- temp
+  
+}
+rm(i, temp)
 
 #convert list to df (spatial point sfc)
 db <- bind_rows(locs)
-
-#convert to flat table with all attributes
-db <- mt_as_event_attribute(db, names(mt_track_data(db)))
-db <- dplyr::mutate(db, 
-                      location_long = sf::st_coordinates(db)[,1],
-                      location_lat = sf::st_coordinates(db)[,2])
-db <- sf::st_drop_geometry(db)
 
 #clean up dataset
 
@@ -148,7 +159,7 @@ db <- db %>%
          lightLevel = light_level)
 
 #remove attributes from df
-db <- as.data.frame(db)
+db <- data.frame(db)
 
 #split into gps/sensor data and deployment info
 gps <- db %>% 
