@@ -154,7 +154,9 @@ files <- list.files(path = file.path("data_raw", "cormie_sensor_data"),
                     full.names = TRUE)
 
 #read data into r
-sdata <- lapply(files, read_csv) %>%
+sdata <- lapply(files, read_csv) 
+
+sdata <- sdata %>%
   bind_rows()
 
 #2.02 format for movebank####
