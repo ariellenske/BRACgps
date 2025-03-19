@@ -26,7 +26,7 @@ mapdatapath <- localgd_loc("map_data")
 
 #load gps location data and deployment info
 gps <- readRDS(file.path(outputbasepath, "data_working", "brac_gps_and_sensor_data.rds"))
-deploys <- readRDS(file.path(outputbasepath, "data_working", "brac_gps_deployments.rds"))
+deploys <- readRDS(file.path(outputbasepath, "data_working", "brac_deployments.rds"))
 
 names(gps)
 names(deploys)
@@ -61,15 +61,17 @@ for(i in 1:length(dlist)){
   ymin <- min(min(bird$lat, na.rm = TRUE), min(dep$deployLat, na.rm = TRUE)) - 0.1
   ymax <- max(max(bird$lat, na.rm = TRUE), max(dep$deployLat, na.rm = TRUE)) + 0.1
   
+  bird_gps <- bird %>% dplyr::filter(!is.na(lat))
+  bird_dive <- bird %>% dplyr::filter(!is.na(barometricDepth))
   
   #map
   p1 <- ggplot(data = eez) +
     geom_sf(fill = "grey90", color = "grey90") +
     geom_sf(data = land, color = "black", fill = "white") +
     coord_sf(xlim = c(xmin, xmax), ylim = c(ymin, ymax), expand = FALSE) +
-    geom_point(data = bird,
+    geom_point(data = bird_gps,
                aes(lon, lat, color = ts), alpha = 0.8, size = 1) +
-    geom_path(data = bird,
+    geom_path(data = bird_gps,
               aes(lon, lat, color = ts), alpha = 0.8, linewidth = 0.75) +
     geom_point(data = dep,
                aes(deployLon, deployLat), color = "red", size = 2) +
@@ -84,13 +86,13 @@ for(i in 1:length(dlist)){
                    " year:", dep$year))
   
   #dives 
-  p2 <- ggplot(data = bird, aes(x = ts, y = barometricDepth, color = ts)) +
+  p2 <- ggplot(data = bird_dive, aes(x = ts, y = as.numeric(barometricDepth), color = ts)) +
     geom_point() +
     scale_color_gradientn(name = "timestamp",
                           colors = viridis(40, direction = -1, begin = 0, end = 1),
                           trans = "time") +
-    scale_x_datetime(date_breaks = "1 day",
-                     date_minor_breaks = "1 hour",
+    scale_x_datetime(date_breaks = "1 month",
+                     date_minor_breaks = "1 week",
                      date_labels = "%d-%b",
                      limits = lims,
                      timezone = "America/Vancouver",
