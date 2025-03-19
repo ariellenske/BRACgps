@@ -29,7 +29,7 @@ movebank_store_credentials(username = "ariellenske")
 #get the animal names of the study
 birdIDs <- as.character(unique(movebank_download_deployment(study = 3066962629)$individual_local_identifier))
 
-#get list of study senso type ids
+#get list of study sensor type ids
 movebank_download_study_info(study_id = 3066962629)$sensor_type_ids
 
 #get entity type list (gives you the correct formatting for sensor_type_id)
@@ -62,6 +62,9 @@ for(i in 1:length(birdIDs)) {
   #drop geometry
   temp <- sf::st_drop_geometry(temp)
   
+  #remove attributes from df
+  temp <- data.frame(temp)
+  
   locs[[i]] <- temp
   
 }
@@ -81,37 +84,37 @@ db <- left_join(db, sciname.df)
 #list of cols want to keep
 cols <- c("study_site",
           "event_id",
-          "timestamp", 
+          "timestamp",
           "location_lat", "location_long",
           "acceleration_raw_x", "acceleration_raw_y", "acceleration_raw_z",
-          "magnetic_field_raw_x","magnetic_field_raw_y","magnetic_field_raw_z",         
+          "magnetic_field_raw_x","magnetic_field_raw_y","magnetic_field_raw_z",
           "ground_speed",
           "heading",
           "height_above_msl",
           "barometric_height",
-          "barometric_depth", 
-          "external_temperature", 
+          "barometric_depth",
+          "external_temperature",
           "light_level",
-          "tag_mass_total", 
+          "tag_mass_total",
           "tag_readout_method",
           "tag_voltage", "battery_charge_percent","battery_charging_current",
-          "gps_satellite_count", 
-          "gps_time_to_fix", 
-          "gps_hdop", 
+          "gps_satellite_count",
+          "gps_time_to_fix",
+          "gps_hdop",
           "ornitela_transmission_protocol",
           "deployment_local_identifier",
-          "tag_local_identifier", 
+          "tag_local_identifier",
           "manufacturer_name",
           "model",
-          "individual_local_identifier", 
+          "individual_local_identifier",
           "species", "taxon_canonical_name",
-          "animal_mass", 
+          "animal_mass",
           "animal_life_stage",
-          "animal_reproductive_condition", 
+          "animal_reproductive_condition",
           # "sex",
-          "attachment_type", 
-          "deploy_on_person", 
-          "deploy_on_timestamp", 
+          "attachment_type",
+          "deploy_on_person",
+          "deploy_on_timestamp",
           "deploy_on_latitude", "deploy_on_longitude",
           "duty_cycle",
           "deployment_comments")
@@ -157,9 +160,6 @@ db <- db %>%
          barometricDepth = barometric_depth,
          temperature = external_temperature,
          lightLevel = light_level)
-
-#remove attributes from df
-db <- data.frame(db)
 
 #split into gps/sensor data and deployment info
 gps <- db %>% 
