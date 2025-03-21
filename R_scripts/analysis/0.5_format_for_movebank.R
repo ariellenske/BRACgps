@@ -138,7 +138,7 @@ write.csv(gpsmeta, file.path(outputbasepath,"data_processed", "movebank_upload",
 dir.create(path = file.path("data_raw", "cormie_sensor_data"))
 
 #list cormie files on INGEO-DEL
-files <- list.files(path = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/BRAC_tracking/Data/BRAC sensor data/", 
+files <- list.files(path = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/BRAC_tracking/Data/BRAC sensor data/BRAC sensor data files/", 
                     full.names = TRUE)
 
 #copy files over from INGEO-DEL 
