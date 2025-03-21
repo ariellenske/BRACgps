@@ -32,19 +32,8 @@ tags <- read_excel("data_raw/cormorant_tracking_database_copy.xlsx", sheet = "ta
 
 #captures
 captures <- read_excel("data_raw/cormorant_tracking_database_copy.xlsx", sheet = "captures",
-                       col_types = c(rep("text", 8), 
-                                     rep("numeric", 1), 
-                                     rep("text", 3),
-                                     rep("guess", 3),
-                                     rep("numeric", 6),
-                                     rep("text", 1)),
                        na = "-") %>%
   dplyr::filter(!is.na(tagID))
-
-
-#fix dates
-captures <- captures %>%
-  mutate(captureDate = as.Date(as.numeric(captureDate), origin = "1899-12-30"))
 
 #fix times
 captures <- captures %>%
@@ -52,7 +41,9 @@ captures <- captures %>%
          captureTime = str_c(captureDate, captureTime, sep = " "),
          releaseTime = as.character(gsub(".* ","", releaseTime)),
          releaseTime = str_c(captureDate, releaseTime, sep = " "),
-         handlingTime = difftime(releaseTime, captureTime, units = "mins"))
+         handlingTime = difftime(releaseTime, captureTime, units = "mins"),
+         deploymentEndTime = as.character(gsub(".* ","", captureTime)),
+         deploymentEndTime = str_c(deploymentEndDate, deploymentEndTime, sep = " "))
 
 
 #check dfs
@@ -76,15 +67,17 @@ gpsmeta <- left_join(gpsmeta, sciname.df)
 gpsmeta <- gpsmeta %>%
   mutate(metalBand = as.numeric(str_replace(metalBand, "-","")))
 
-#1.05. fix tag deploy and retrieval times####
+#1.05. fix tag deploy and deploy end times####
 
 #a. set correct timezone, times were recorded in local time so timezone = "America/Vancouver"
 gpsmeta <- gpsmeta %>%
-  mutate(deploy_on_timestamp = as.POSIXct(releaseTime, tz = "America/Vancouver"))
+  mutate(deploy_on_timestamp = as.POSIXct(releaseTime, tz = "America/Vancouver"),
+         deploy_off_timestamp = as.POSIXct(deploymentEndTime, tz = "America/Vancouver"))
 
-#c. convert deploy times to UTC
+#c. convert deploy and deply end times to UTC
 gpsmeta <- gpsmeta %>%
-  mutate(deploy_on_timestamp = with_tz(deploy_on_timestamp, tzone = "UTC"))
+  mutate(deploy_on_timestamp = with_tz(deploy_on_timestamp, tzone = "UTC"),
+         deploy_off_timestamp = with_tz(deploy_off_timestamp, tzone = "UTC"))
 
 #1.07 add deployment id####
 gpsmeta <- gpsmeta %>% mutate(deployID = paste0("band", metalBand, "-tag", tagID, "-", captureYear))
@@ -93,7 +86,6 @@ gpsmeta <- gpsmeta %>% mutate(deployID = paste0("band", metalBand, "-tag", tagID
 gpsmeta <- gpsmeta %>% 
   mutate(animal_life_stage = "adult",
          animal_reproductive_condition = "non-breeding",
-         deployment_end_type = NA,
          duty_cycle = "varible",
          tag_manufacturer_name = "Ornitela",
          tag_readout_method = "phone-network") 
@@ -107,13 +99,16 @@ gpsmeta <- gpsmeta %>%
                 animal_life_stage,
                 animal_mass = mass,
                 animal_reproductive_condition,
+                animal_sex = sex,
                 animal_ring_id = metalBand,
                 attachment_type = tagAttachment,
                 deploy_on_latitude = deploy_lat,
                 deploy_on_longitude = deploy_lon,
                 deploy_on_person = tagger,
                 deploy_comments = captureComments,
-                deployment_end_type,
+                deploy_off_timestamp,
+                deployment_end_type = deploymentEndType,
+                deployment_end_comments = deploymentEndComments,
                 deployment_id = deployID,
                 duty_cycle,
                 study_site = location,
