@@ -42,7 +42,7 @@ captures <- captures %>%
          releaseTime = as.character(gsub(".* ","", releaseTime)),
          releaseTime = str_c(captureDate, releaseTime, sep = " "),
          handlingTime = difftime(releaseTime, captureTime, units = "mins"),
-         deploymentEndTime = as.character(gsub(".* ","", captureTime)),
+         deploymentEndTime = as.character(gsub(".* ","", deploymentEndTime)),
          deploymentEndTime = str_c(deploymentEndDate, deploymentEndTime, sep = " "))
 
 
