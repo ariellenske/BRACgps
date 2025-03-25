@@ -9,7 +9,6 @@
 library(tidyverse)
 library(lubridate)
 library(move2)
-# library(keyring)
 library(sf)
 
 #source functions
@@ -111,13 +110,16 @@ cols <- c("study_site",
           "animal_mass",
           "animal_life_stage",
           "animal_reproductive_condition",
-          # "sex",
+          "sex",
           "attachment_type",
           "deploy_on_person",
           "deploy_on_timestamp",
           "deploy_on_latitude", "deploy_on_longitude",
           "duty_cycle",
-          "deployment_comments")
+          "deployment_comments",
+          "deploy_off_timestamp",
+          "deployment_end_type",
+          "deployment_end_comments")
 
                                
 db <- db %>%
@@ -125,6 +127,7 @@ db <- db %>%
   dplyr::mutate(
     timestamp = with_tz(as.POSIXct(timestamp, tz = "UTC"), tzone = "America/Vancouver"), # convert times to PT
     deploy_on_timestamp = with_tz(as.POSIXct(deploy_on_timestamp, tz = "UTC"), tzone = "America/Vancouver"),
+    deploy_off_timestamp = with_tz(as.POSIXct(deploy_off_timestamp, tz = "UTC"), tzone = "America/Vancouver"),
     year = as.numeric(strftime(timestamp, '%Y')), #add year field
     month = as.numeric(strftime(timestamp, '%m')) # add numeric month field
   ) 
@@ -136,11 +139,14 @@ db <- db %>%
          metalBand = individual_local_identifier,
          speciesSciName = taxon_canonical_name,
          deployTime = deploy_on_timestamp,
+         deployEndTime = deploy_off_timestamp,
          deployMass = animal_mass,
          attachmentType = attachment_type,
          deployLat = deploy_on_latitude,
          deployLon = deploy_on_longitude,
          deployComments = deployment_comments,
+         deployEndComments = deployment_end_comments,
+         deployEndType = deployment_end_type,
          deployID = deployment_local_identifier,
          fixRate = duty_cycle,
          studySite = study_site,
@@ -177,10 +183,10 @@ gps <- db %>%
   ungroup()
 
 deploys <- db %>% 
-  dplyr::select(studySite, deployLat, deployLon, deployID, deployTime, 
-                tagID, manufacturer_name, model, metalBand, species, speciesSciName, animal_reproductive_condition,
+  dplyr::select(studySite, deployLat, deployLon, deployID, deployTime, deployEndTime, deployEndType,
+                tagID, manufacturer_name, model, metalBand, species, speciesSciName, sex, animal_reproductive_condition,
                 deployMass, attachmentType, tag_mass_total, tag_readout_method, deploy_on_person,
-                deployComments) %>%
+                deployComments, deployEndComments) %>%
   distinct() 
  
   
