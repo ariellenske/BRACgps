@@ -44,6 +44,9 @@ dlist <- deploys %>% dplyr::select(deployID) %>% distinct() %>% pull()
 land <- st_read(file.path(mapdatapath, "world_coastline", "GSHHS_shp", "h", "GSHHS_h_L1.shp")) 
 eez <- st_read(file.path(mapdatapath, "eez", "eez.shp"))
 
+#filter out extreme outliers
+gps <- gps %>% dplyr::filter(lon < -100 | is.na(lon))
+
 
 #plot each bird separately
 for(i in 1:length(dlist)){
@@ -86,12 +89,9 @@ for(i in 1:length(dlist)){
                    " year:", dep$year))
   
   #dives 
-  p2 <- ggplot(data = bird_dive, aes(x = ts, y = as.numeric(barometricDepth), color = ts)) +
+  p2 <- ggplot(data = bird_dive, aes(x = ts, y = as.numeric(barometricDepth)), color = "black", alpha = 0.5) +
     geom_point() +
-    scale_color_gradientn(name = "timestamp",
-                          colors = viridis(40, direction = -1, begin = 0, end = 1),
-                          trans = "time") +
-    scale_x_datetime(date_breaks = "1 month",
+    scale_x_datetime(date_breaks = "2 weeks",
                      date_minor_breaks = "1 week",
                      date_labels = "%d-%b",
                      limits = lims,
@@ -102,7 +102,6 @@ for(i in 1:length(dlist)){
     theme(legend.position = "none",
           panel.grid.minor.x = element_line(colour="lightgrey", linewidth = 0.5),
           panel.grid.major.x = element_line(colour="lightgrey", linewidth = 0.5)) +
-    guides(colour = guide_colourbar(barwidth=25)) +
     ylab("Depth (meters)") + xlab("Time") +
     scale_y_reverse()
   
