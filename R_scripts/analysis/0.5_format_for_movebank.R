@@ -160,7 +160,7 @@ sdata <- sdata %>%
 sdata <- sdata %>%
   mutate(timestamp = format(UTC_datetime), formate = "%Y-%m-%d %H:%M:%S")
 
-# dive data (with other sensor data)
+#dive data (with other sensor data)
 ddata <- sdata %>%
   dplyr::filter(!is.na(depth_m) & !is.na(light)) %>%
   dplyr::select(timestamp, 
@@ -175,15 +175,14 @@ ddata <- sdata %>%
                 mag_z,
                 int_temperature_C) 
 
-# dive data (without other sensor data)
+#dive data (without other sensor data)
 ddata0 <- sdata %>%
   dplyr::filter(!is.na(depth_m) & is.na(light)) %>%
   dplyr::select(timestamp, 
                 tag_id = device_id,
                 depth_m) 
 
-
-# acceleration only data
+#acceleration only data
 adata <- sdata %>%
   dplyr::filter(!is.na(acc_x) & is.na(depth_m)) %>%
   dplyr::select(timestamp, 
@@ -192,7 +191,6 @@ adata <- sdata %>%
                 acc_y,
                 acc_z) %>%
   dplyr::filter(!is.na(acc_x))
-
 
 #2.03 save dive and acceleration dataframes for movebank upload####
 
