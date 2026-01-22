@@ -54,6 +54,8 @@ for(i in 1:length(dlist)){
   bird <- gps %>% filter(deployID == dlist[i]) 
   dep <- deploys %>% filter(deployID == dlist[i]) 
   
+  depyear <- year(dep$deployTime)
+  
   stime <- dep$deployTime - hours(4)
   etime <- max(bird$ts) + hours(4)
   
@@ -86,11 +88,11 @@ for(i in 1:length(dlist)){
     ylab("Latitude") + xlab("Longitude") +
     ggtitle(paste0(dep$species, " ", dep$studySite,": tag",
                    dep$tagID, " band", dep$metalBand,
-                   " year:", dep$year))
+                   " year:", depyear))
   
   #dives 
-  p2 <- ggplot(data = bird_dive, aes(x = ts, y = as.numeric(barometricDepth)), color = "black", alpha = 0.5) +
-    geom_point() +
+  p2 <- ggplot(data = bird_dive, aes(x = ts, y = as.numeric(barometricDepth))) +
+    geom_point(color = "black", alpha = 0.5) +
     scale_x_datetime(date_breaks = "2 weeks",
                      date_minor_breaks = "1 week",
                      date_labels = "%d-%b",
@@ -108,7 +110,7 @@ for(i in 1:length(dlist)){
   
   png(filename = file.path(outputbasepath, "figs", "diagnostic-individual-bird-plots",
                            paste0(dep$studySite,"-tag",
-                                  dep$tagID, "-", dep$year, ".png")),
+                                  dep$tagID, "-", depyear, ".png")),
       width=10, height=9, units="in", res=300,
       type = "cairo") 
   
