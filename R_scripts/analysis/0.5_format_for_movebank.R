@@ -9,6 +9,7 @@
 library(tidyverse)
 library(lubridate)
 library(readxl)
+library(janitor)
 
 #source functions
 source("R_scripts/functions/outputs_loc.R")
@@ -132,9 +133,9 @@ write.csv(gpsmeta, file.path(outputbasepath,"data_processed", "movebank_upload",
 ###############################################################################
 #2. sensor data
 
-#2.01 download cormorant sensor and gps data from ingeodel and read into R####
+#2.01 download cormorant sensor data from ingeodel and read into R####
 
-#create a new folder in "data_raw" to hold all the raw gps data
+#create a new folder in "data_raw" to hold all the raw sensor data
 dir.create(path = file.path("data_raw", "cormie_sensor_data"))
 
 #list cormie files on INGEO-DEL
@@ -204,5 +205,80 @@ write.csv(ddata0, file.path(outputbasepath,"data_processed", "movebank_upload",
 
 write.csv(adata, file.path(outputbasepath,"data_processed", "movebank_upload",
                            paste0("acceleration-only-data-BRAC-Tsawwassen.csv")),
+          row.names = FALSE)
+
+###############################################################################
+#3.0 tag settings
+
+#2.01 download cormorant tag settings data from ingeodel and read into R####
+
+#create a new folder in "data_raw" to hold all the tag settings 
+dir.create(path = file.path("data_raw", "cormie_tagsettings"))
+
+#list cormie files on INGEO-DEL
+files <- list.files(path = "Z:/USERS/LenskeA/CWS_OceanProtectionPlan/Cormorants/BRAC_tracking/Data/BRAC tag settings/", 
+                    full.names = TRUE)
+
+#copy files over from INGEO-DEL 
+file.copy(from = files, to = file.path("data_raw", "cormie_tagsettings"), overwrite = TRUE)
+
+#list cormie files in data_raw folder
+files <- list.files(path = file.path("data_raw", "cormie_tagsettings"), 
+                    full.names = TRUE)
+
+#read data into r
+tdata <- lapply(files, read_csv) 
+
+tdata <- tdata %>%
+  bind_rows()
+
+#clean up dataframe
+tdata <- tdata %>% 
+  clean_names() %>%
+  remove_empty("cols")
+
+#select and rename relevant columns
+tdata <- tdata %>%
+  mutate(datetime_utc2 = as.POSIXct(paste0(utc_date, " ", utc_time), tz = "UTC")) %>%
+  dplyr::select(tag_id = device_id,
+                datetime_utc = datetime_utc2,
+                gsm_interval = gsm_data_session_interval,
+                gps_fix_interval,
+                gps_fix_interval_when_battery_less_than_75_percent,
+                gps_fix_interval_when_battery_less_than_50_percent,
+                gps_fix_interval_when_battery_less_than_25_percent,
+                gps_fix_interval_during_sleep,
+                enable_gps_sleep,
+                gps_sleep_dusk_sun_angle = gps_sleep_from_dusk,
+                gps_sleep_dawn_sun_angle = gps_sleep_till_dawn,
+                dive_sensor_frequency = enable_diving_sensor,
+                diving_sensor_options,
+                disable_diving_sensor_when_battery_less_than_x_percent = disable_diving_sensor_when_battery_less_than_x_percent_61,
+                divelink_gps_burst,
+                sensors_log_interval,
+                sensors_burst_time,
+                sensors_burst_frequency,
+                sensors_logging_options,
+                disable_sensors_burst_when_battery_less_than_x_percent,
+                disable_sensors_burst_when_free_memory_less_than_x_percent,
+                gps_fix_timeout) %>%
+  group_by(tag_id) %>%
+  arrange(datetime_utc) %>%
+  tidyr::fill(everything(), .direction = "down") %>%
+  tidyr::fill(everything(), .direction = "up") %>%
+  ungroup() %>%
+  mutate(diving_sensor_options = ifelse(diving_sensor_options == 1, "log_all_sensors",
+                                        ifelse(diving_sensor_options == 0, "log_only_dive_sensor", NA)),
+         sensors_log_interval = ifelse(sensors_log_interval == 0, "disabled",
+                                        ifelse(sensors_log_interval == -3, "divelink_and_GPS", 
+                                               ifelse(sensors_log_interval == -2, "divelink", 
+                                                      ifelse(sensors_log_interval == -1, "GPS", sensors_log_interval)))),
+         sensors_logging_options = ifelse(sensors_logging_options == 0, "log_only_accelerometer",
+                                        ifelse(sensors_logging_options == 1, "log_all_sensors", NA))) %>%
+  arrange(tag_id)
+
+#3.02 save dive and acceleration dataframes for movebank upload####
+write.csv(tdata, file.path(outputbasepath,"data_processed", "movebank_upload",
+                           paste0("tag-settings-BRAC-Tsawwassen.csv")),
           row.names = FALSE)
 
